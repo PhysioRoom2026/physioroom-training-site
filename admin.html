@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physio Room Training — Admin</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="appbar">
+    <div class="brand-row" style="margin:0">
+      <div class="brand-mark" style="width:32px;height:32px">PR</div>
+      <div><div class="brand-name" style="font-size:15px">Training Admin</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="who" id="whoami"></span>
+      <button class="btn ghost" id="signout" style="padding:8px 14px">Sign out</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1 class="page-title">Team training records</h1>
+    <p class="page-sub">Everyone's completions in one place. <button class="btn" id="csv" style="padding:6px 12px">Export CSV</button></p>
+    <div id="gate"></div>
+    <div class="history"><div id="body"><p class="empty">Loading...</p></div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js"></script>
+  <script>
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let rows = [];
+
+    // Staff take the training with no login. The admin page stays private, so
+    // it has its own sign-in here (only people in the admins table can read records).
+    (async function init() {
+      const { data } = await sb.auth.getSession();
+      if (!data.session) { showLogin(); return; }
+      await afterLogin(data.session.user.email);
+    })();
+
+    function showLogin() {
+      document.getElementById('whoami').textContent = '';
+      document.getElementById('body').innerHTML = '';
+      document.getElementById('gate').innerHTML =
+        '<div style="max-width:360px"><h2 style="margin:0 0 6px;font-size:18px">Admin sign in</h2>' +
+        '<p class="empty" style="margin:0 0 12px">Sign in with your Physio Room email to view the records.</p>' +
+        '<input id="ademail" type="email" placeholder="you@physioroomco.com" autocomplete="email" style="display:block;width:100%;padding:10px;margin-bottom:8px;border:1px solid #d9e0e5;border-radius:8px">' +
+        '<input id="adpass" type="password" placeholder="Password" autocomplete="current-password" style="display:block;width:100%;padding:10px;margin-bottom:12px;border:1px solid #d9e0e5;border-radius:8px">' +
+        '<button class="btn" id="adlogin">Sign in</button>' +
+        '<p class="empty" id="admsg" style="margin-top:10px"></p></div>';
+      document.getElementById('adlogin').addEventListener('click', doLogin);
+      document.getElementById('adpass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    }
+
+    async function doLogin() {
+      const email = document.getElementById('ademail').value.trim();
+      const password = document.getElementById('adpass').value;
+      document.getElementById('admsg').textContent = 'Signing in...';
+      const { error } = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (error) { document.getElementById('admsg').textContent = error.message || 'Could not sign in.'; return; }
+      await afterLogin(email);
+    }
+
+    async function afterLogin(email) {
+      document.getElementById('whoami').textContent = email;
+      const { data: adm } = await sb.from('admins').select('email').eq('email', email);
+      if (!adm || !adm.length) {
+        document.getElementById('gate').innerHTML =
+          '<p class="empty">This account is not an administrator. Ask Alex to add your email to the admin list.</p>';
+        document.getElementById('body').innerHTML = '';
+        return;
+      }
+      document.getElementById('gate').innerHTML = '';
+      loadAll();
+    }
+
+    document.getElementById('signout').addEventListener('click', async function () {
+      await sb.auth.signOut();
+      window.location.reload();
+    });
+
+    async function loadAll() {
+      const { data, error } = await sb.from('completions')
+        .select('user_email,module,score,total,passed,completed_at')
+        .order('completed_at', { ascending: false });
+      const body = document.getElementById('body');
+      if (error) { body.innerHTML = '<p class="empty">Could not load records.</p>'; return; }
+      rows = data || [];
+      if (!rows.length) { body.innerHTML = '<p class="empty">No training completed yet.</p>'; return; }
+      let html = '<table><thead><tr><th>Person</th><th>Module</th><th>Score</th><th>Result</th><th>Date</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        const pct = Math.round((r.score / r.total) * 100);
+        const d = new Date(r.completed_at).toLocaleDateString();
+        html += '<tr><td>' + r.user_email + '</td><td>' + r.module + '</td><td>' + pct + '% (' + r.score + '/' + r.total + ')</td><td>' +
+          (r.passed ? '<span class="status-pill done">Passed</span>' : '<span class="status-pill todo">Not passed</span>') +
+          '</td><td>' + d + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    }
+
+    document.getElementById('csv').addEventListener('click', function () {
+      if (!rows.length) { alert('Nothing to export yet.'); return; }
+      const head = ['Person', 'Module', 'Score', 'Total', 'Percent', 'Result', 'Date'];
+      const lines = rows.map(function (r) {
+        const pct = Math.round((r.score / r.total) * 100);
+        return [r.user_email, r.module, r.score, r.total, pct + '%', r.passed ? 'Passed' : 'Not passed',
+          new Date(r.completed_at).toLocaleDateString()];
+      });
+      const csv = [head].concat(lines).map(function (a) {
+        return a.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+      }).join('\n');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      link.download = 'physioroom-team-training.csv';
+      link.click();
+    });
+  </script>
+</body>
+</html>

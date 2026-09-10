@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physio Room Training</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; margin: 10px 0 6px; border-radius: 10px; overflow: hidden; background: #000; }
+    .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+    .keypoints { margin-top: 16px; padding: 14px 16px; border-left: 3px solid #12857a; background: rgba(18,133,122,.07); border-radius: 8px; }
+    .keypoints h3 { margin-top: 0; }
+    .gate { margin: 18px 0 4px; padding: 14px 16px; border: 1px dashed var(--hairline, #d9e0e5); border-radius: 10px; background: rgba(0,0,0,.02); }
+    .ackline { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+    .ackline input { margin-top: 3px; flex: none; }
+    .module.locked { opacity: .8; }
+    .locked-note { font-size: 14px; color: var(--muted, #5a6b78); margin: 6px 0; }
+    .status-pill.locked { background: #eef0f2; color: #8a97a1; }
+    .learner-box { background: var(--surface, #fff); border: 1px solid var(--hairline, #e2e8ec); border-radius: 12px; padding: 16px 18px; margin: 14px 0 18px; box-shadow: var(--shadow, 0 1px 3px rgba(0,0,0,.06)); }
+    .learner-fields { display: flex; gap: 16px; flex-wrap: wrap; }
+    .learner-fields label { font-size: 13px; font-weight: 600; }
+    .learner-fields input, .learner-fields select { font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--hairline, #d9e0e5); border-radius: 8px; margin-top: 5px; min-width: 220px; }
+  </style>
+</head>
+<body>
+  <div class="appbar">
+    <div class="brand-row" style="margin:0">
+      <div class="brand-mark" style="width:32px;height:32px">PR</div>
+      <div><div class="brand-name" style="font-size:15px">Physio Room Training</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="who" id="whoami"></span>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1 class="page-title">Your required training</h1>
+    <p class="page-sub">For each module: watch the video, read the material, then take the quiz (you need <strong id="passLabel">80%</strong> to pass). Complete <strong>HIPAA first</strong>, then OSHA unlocks once you pass it.</p>
+
+    <div class="learner-box" id="learnerBox">
+      <h2 style="margin:0 0 4px;font-size:16px">Before you start</h2>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted,#5a6b78)">Enter your name so your training is recorded. Please use your real first and last name.</p>
+      <div class="learner-fields">
+        <label>Your name<br><input type="text" id="learnerName" placeholder="First and last name" autocomplete="name"></label>
+        <label>Location<br><select id="learnerLocation"><option value="">Select...</option><option>Highlands Ranch</option><option>Colorado Springs</option></select></label>
+      </div>
+    </div>
+
+    <div id="modules"></div>
+
+    <div class="history">
+      <h2>Your completed training</h2>
+      <div id="historyBody"><p class="empty">Loading...</p></div>
+    </div>
+  </div>
+
+  <!-- 1) Render the training instantly. This needs no network, so the page never feels slow. -->
+  <script>
+    // ---------- Training + quiz content (2026) ----------
+    // Module titles are kept identical to the originals so the SQL reports and saved
+    // history stay consistent. Add more questions any time; the app grades whatever is listed.
+    const MODULES = [
+      {
+        id: 'hipaa',
+        title: 'HIPAA: Patient Privacy',
+        summary: 'Protecting patient health information (PHI)',
+        video: 'CdUUfVOP4bE',
+        keypoints: `
+          <ul>
+            <li>Everyone protects privacy. PHI includes demographics too: name, address, age, Social Security number, phone.</li>
+            <li>Use PHI without written authorization only for Treatment, Payment, and Operations. Marketing needs written authorization.</li>
+            <li>Share the minimum necessary. Patients can see their records (respond within about 30 days) and can revoke an authorization in writing at any time. You cannot withhold records over an unpaid bill.</li>
+            <li>Never share logins. Lock or log off when you step away. Position screens away from view. Verify any stranger before giving access.</li>
+            <li>Long, unique passwords plus multi-factor authentication beat forced 30-day password changes.</li>
+            <li>Encrypt devices and report a lost or stolen device immediately. Use only approved secure channels for PHI, never a personal text or email app.</li>
+            <li>If you suspect a breach: gather the facts and tell the Privacy Officer, Ann Marie Arnold. Ransomware on patient data is treated as a reportable breach. Breaches under 500 people are reported to HHS within 60 days of year end.</li>
+            <li>Policy violations can lead to discipline up to and including termination.</li>
+          </ul>
+        `,
+        content: `
+          <h3>Why privacy matters</h3>
+          <p>Confidentiality lets patients feel comfortable sharing information, and it protects the clinic. Everyone at Physio Room is responsible for privacy, not only the people who touch records.</p>
+          <h3>What is protected (PHI)</h3>
+          <p>Protected Health Information includes not just the reason a patient is treated, but also details like their address, age, Social Security number, and phone number. Only share the minimum information necessary.</p>
+          <h3>Using or sharing PHI</h3>
+          <p>PHI may be used without a signed authorization only for Treatment, Payment, and Operations. Marketing uses (photos on ads, billboards, social media) require a signed authorization. A patient can revoke an authorization in writing at any time.</p>
+          <h3>Patient rights</h3>
+          <p>Patients can ask to see their own records, and the clinic generally must respond within 30 days. You cannot deny access just because a patient owes money.</p>
+          <h3>Everyday safeguards</h3>
+          <ul>
+            <li>Close doors, knock before entering, use curtains during treatment.</li>
+            <li>Position monitors so others cannot read the screen.</li>
+            <li>Never share logins. Lock or log off whenever you step away, not just at day end.</li>
+            <li>If a stranger asks for computer access, ask who hired them and verify before letting them in.</li>
+          </ul>
+          <h3>Security in 2026</h3>
+          <ul>
+            <li>Long, unique passwords plus multi-factor authentication (MFA) are today's best practice, better than forcing a password change every 30 days.</li>
+            <li>Devices that store or open patient data should be encrypted and protected. Report a lost or stolen device immediately.</li>
+            <li>Only use approved, secure channels for PHI. Do not text or email PHI from a personal, unsecured app.</li>
+            <li>A ransomware attack on patient data is treated as a reportable breach unless a risk assessment shows a low probability that data was exposed.</li>
+          </ul>
+          <h3>If something goes wrong</h3>
+          <p>If you suspect a privacy violation or a breach, gather the facts and report it to the Privacy Officer (Ann Marie Arnold) or your supervisor. For a breach affecting fewer than 500 people, the clinic reports it to HHS within 60 days of the end of the calendar year. Violations can lead to discipline up to and including termination.</p>
+        `,
+        quiz: [
+          { q: "Confidentiality and privacy matter in healthcare because they...", o: ["Protect the facility from lawsuits", "Help patients feel comfortable sharing information", "Stop non-providers from distributing patient info", "Both of the first two"], a: 3 },
+          { q: "Common ways employees protect patient privacy include...", o: ["Closing patient doors", "Knocking before entering", "Using curtains during treatment", "All of the above"], a: 3 },
+          { q: "A stranger says he is here to work on the computers and wants access. You...", o: ["Give him the access he needs", "Ask who hired him and verify before granting access", "Call the police"], a: 1 },
+          { q: "When may you repeat private health information you hear on the job?", o: ["After you leave the company", "After the patient dies", "If you think they will not mind", "Only when authorized, for treatment, payment, or operations"], a: 3 },
+          { q: "If you suspect a privacy violation, you should...", o: ["Say nothing", "Gather evidence yourself first", "Report it to the Privacy Officer or your supervisor"], a: 2 },
+          { q: "Providers may report suspected child abuse when required to by law.", o: ["True", "False"], a: 0 },
+          { q: "Anyone who violates the privacy policy can face discipline up to and including termination.", o: ["True", "False"], a: 0 },
+          { q: "Only employees who access records need to protect privacy.", o: ["True", "False"], a: 1 },
+          { q: "Confidentiality also covers address, age, Social Security number, and phone number.", o: ["True", "False"], a: 0 },
+          { q: "Equipment that stored PHI must be securely wiped or destroyed before disposal.", o: ["True", "False"], a: 0 },
+          { q: "The group of medical and billing records used to make decisions about a patient is called the...", o: ["Designated Record Set", "Protected Health Information", "Electronic PHI", "Minimum Data Set"], a: 0 },
+          { q: "A Designated Record Set includes...", o: ["The medical record", "The billing file", "Records used to make patient decisions", "All of the above"], a: 3 },
+          { q: "Which is generally EXCLUDED from the Designated Record Set?", o: ["Audit trails and schedules without PHI", "Quality and statistical data", "Incident and peer-review records", "All of the above"], a: 3 },
+          { q: "A disclosure that needs review or authorization is...", o: ["A disclosure to the patient themselves", "A disclosure to another provider unrelated to treatment", "A disclosure under a signed authorization", "A disclosure for payment"], a: 1 },
+          { q: "When fulfilling a disclosure request you should provide...", o: ["All PHI you hold", "The minimum PHI necessary for the request", "Only billing records", "Whatever is fastest"], a: 1 },
+          { q: "A PHI fax or email cover sheet should include all of the following EXCEPT...", o: ["Recipient name and number", "Sender name and callback", "A confidentiality notice", "The patient's full diagnosis on the cover sheet"], a: 3 },
+          { q: "PHI may be used WITHOUT authorization for all of the following EXCEPT...", o: ["Treatment", "Payment", "Operations", "Marketing (ads, billboards, social media)"], a: 3 },
+          { q: "A patient may revoke a prior authorization...", o: ["By phone with 7 days notice", "In writing, at any time", "In writing within 30 days", "They cannot revoke it"], a: 1 },
+          { q: "A patient's request to access their PHI may be denied EXCEPT when...", o: ["It was compiled for a legal proceeding", "It is ongoing research with prior agreement", "The patient owes money or cannot pay a copay", "Disclosure would reveal a confidential source"], a: 2 },
+          { q: "In a properly de-identified record, what may remain?", o: ["Name and SSN", "Full birth, admit, and discharge dates", "Aggregate data with all 18 identifiers removed", "Unique codes traceable to the patient"], a: 2 },
+          { q: "A staff member stays present while a patient views their record to do all EXCEPT...", o: ["Answer questions", "Ensure the record is not altered", "Argue about or defend the documentation", "Ensure documents are not removed"], a: 2 },
+          { q: "If you discover or suspect a breach you should immediately...", o: ["Gather facts and notify the Privacy Officer", "Contact the OIG yourself", "Ignore it if it will not recur", "Draft a public statement"], a: 0 },
+          { q: "For a breach affecting FEWER than 500 people, HHS must be notified...", o: ["Within 7 days of discovery", "Within 30 days of discovery", "Within 60 days of the end of the calendar year", "The media within 30 days"], a: 2 },
+          { q: "Only staff who need computers for work should have workstation access.", o: ["True", "False"], a: 0 },
+          { q: "It is OK for two busy staff to share one login.", o: ["True", "False"], a: 1 },
+          { q: "Long unique passwords plus MFA are today's best practice, better than forced 30-day password changes.", o: ["True", "False"], a: 0 },
+          { q: "ePHI access should be limited to staff who need it for treatment, payment, or operations.", o: ["True", "False"], a: 0 },
+          { q: "It is fine to leave your workstation unlocked when you step away, as long as you log off at day end.", o: ["True", "False"], a: 1 },
+          { q: "Monitors should be positioned so unauthorized people cannot read the screen.", o: ["True", "False"], a: 0 },
+          { q: "Patients can request their own PHI and the clinic must respond, generally within 30 days.", o: ["True", "False"], a: 0 },
+          { q: "Texting or emailing PHI from a personal, unsecured app is fine if it is faster.", o: ["True", "False"], a: 1 },
+          { q: "A ransomware attack on patient data is presumed a reportable breach unless a risk assessment shows low probability of compromise.", o: ["True", "False"], a: 0 },
+          { q: "Devices that store or open patient data should be encrypted and protected, and lost or stolen devices reported immediately.", o: ["True", "False"], a: 0 }
+        ]
+      },
+      {
+        id: 'osha_bbp',
+        title: 'OSHA: Bloodborne Pathogens & Standard Precautions',
+        summary: 'Preventing exposure to infectious material',
+        video: '3WeFZFb2nZo',
+        keypoints: `
+          <ul>
+            <li>Hepatitis inflames the liver. Hepatitis C is the leading indicator for liver transplants in the U.S.</li>
+            <li>Standard Precautions: treat all blood and body fluids as infectious. Sweat is not considered infectious.</li>
+            <li>PPE is gloves, a gown or apron, and a face shield or mask with eye protection. Finish by washing your hands.</li>
+            <li>Sharps go in the red, biohazard-labeled container. Never recap a needle by hand.</li>
+            <li>After a needlestick: wash or flush the area first, then report it. The clinic provides free, confidential follow-up.</li>
+            <li>The Hepatitis B vaccine is offered free within 10 days of at-risk assignment. Declining is signed and can be reversed later at no cost.</li>
+            <li>The Exposure Control Plan is reviewed at least yearly. Questions go to Ann Marie Arnold, our Safety Officer.</li>
+          </ul>
+        `,
+        content: `
+          <h3>The basics</h3>
+          <p>Bloodborne pathogens are infectious microorganisms in blood and certain body fluids. Hepatitis viruses cause inflammation of the liver, and Hepatitis C is the leading indicator for liver transplants in the United States.</p>
+          <h3>What counts as potentially infectious</h3>
+          <p>Treat all blood and body fluids as if they are infectious (this is called Standard Precautions). Blood, saliva, semen, and amniotic fluid are treated as potentially infectious. Sweat is not.</p>
+          <h3>Protect yourself (PPE)</h3>
+          <p>Personal Protective Equipment includes gloves, a gown or apron, and a face shield or mask with eye protection. When removing PPE, finish with hand hygiene, which is one of the most effective ways to prevent the spread of infection.</p>
+          <h3>Sharps safety</h3>
+          <ul>
+            <li>Place uncapped needles directly into the red, biohazard-labeled Sharps container.</li>
+            <li>Do NOT recap needles by hand. That is a common cause of needlesticks.</li>
+            <li>Put contaminated laundry, dressings, and waste in labeled, color-coded biohazard containers.</li>
+          </ul>
+          <h3>Hepatitis B vaccine</h3>
+          <p>The clinic offers the Hepatitis B vaccine free to at-risk staff, within 10 days of assignment to duties with possible exposure. If you decline, you sign the OSHA declination form, and you may still get the vaccine later at no cost.</p>
+          <h3>If you have a needlestick or exposure</h3>
+          <p>First, wash or flush the area with soap and water (or a skin disinfectant). Then notify your supervisor and complete the incident report. The clinic provides a confidential medical evaluation and follow-up at no cost to you.</p>
+          <h3>Our written plan</h3>
+          <p>Our Exposure Control Plan is reviewed at least once a year and whenever tasks change. If you have any questions about this training, ask Ann Marie Arnold, our Safety Officer, so you have the chance to talk it through with a knowledgeable person.</p>
+        `,
+        quiz: [
+          { q: "Hepatitis causes inflammation of which organ?", o: ["Heart", "Lungs", "Brain", "Liver", "Pancreas"], a: 3 },
+          { q: "Which of the following is NOT a potentially infectious bodily fluid under Standard Precautions?", o: ["Saliva", "Amniotic fluid", "Blood", "Semen", "Sweat"], a: 4 },
+          { q: "What is the FIRST thing you should do if you stick yourself with a used needle?", o: ["Notify your supervisor", "Get the Hepatitis B vaccine", "Go see a doctor", "Wash or flush the area immediately, then report it", "Fill out the paperwork"], a: 3 },
+          { q: "What is the leading bloodborne cause of chronic liver disease and transplants in the U.S.?", o: ["HIV", "Malaria", "Wilson disease", "Hepatitis C", "Epstein-Barr virus"], a: 3 },
+          { q: "How should a Sharps container be labeled and color-coded?", o: ["Red container with the biohazard symbol", "Blue with a recycling symbol", "Green with a cross", "Black with a caution symbol"], a: 0 },
+          { q: "Placing uncapped needles directly in a Sharps container prevents sticks, and recapping by hand is unsafe.", o: ["True", "False"], a: 0 },
+          { q: "Standard Precautions means you should...", o: ["Only protect yourself when you know of an infection", "Treat all blood and body fluids as potentially infectious", "Wear gloves only in surgery", "Rely on the patient to tell you"], a: 1 },
+          { q: "Which is an example of PPE?", o: ["Gloves", "Gown or apron", "Face shield or mask with eye protection", "All of the above"], a: 3 },
+          { q: "The employer must offer the Hepatitis B vaccine free within 10 days of assignment to at-risk duties.", o: ["True", "False"], a: 0 },
+          { q: "An Exposure Control Plan must be...", o: ["Written once and never changed", "Reviewed and updated at least annually and when tasks change", "Kept only at corporate", "Optional for small clinics"], a: 1 },
+          { q: "After an exposure, the employer must provide confidential medical evaluation and follow-up at no cost.", o: ["True", "False"], a: 0 },
+          { q: "When removing PPE, the sequence generally ends with...", o: ["Removing gloves last", "Hand hygiene as the final step", "Reusing the gown", "Recapping the needle"], a: 1 },
+          { q: "Contaminated laundry, dressings, and waste should be...", o: ["In the regular trash", "In labeled, color-coded biohazard containers", "Taken home to wash", "Left for the next shift"], a: 1 },
+          { q: "Handwashing with soap and running water is one of the most effective ways to prevent infection.", o: ["True", "False"], a: 0 },
+          { q: "If you decline the Hepatitis B vaccine, you must...", o: ["Do nothing", "Sign the OSHA declination, and you may still get it later for free", "Quit your job", "Pay for it yourself later"], a: 1 }
+        ]
+      }
+    ];
+
+    // Which modules the current user has already passed (drives the HIPAA-then-OSHA order).
+    var passedModules = {};
+    function isUnlocked(mi) { return mi === 0 || !!passedModules[MODULES[mi - 1].id]; }
+
+    function buildLesson(m) {
+      var vid = m.video
+        ? '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/' + m.video +
+          '" title="' + m.title + ' training video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'
+        : '';
+      return '<div class="lesson">' +
+        '<h3 style="margin-top:0">Step 1 &mdash; Watch the training video</h3>' + vid +
+        '<h3>Step 2 &mdash; Read the material</h3>' + m.content +
+        (m.keypoints ? '<div class="keypoints"><h3>Key points to remember</h3>' + m.keypoints + '</div>' : '') +
+        '</div>' +
+        '<div class="gate">' +
+        '<label class="ackline"><input type="checkbox" data-ack="' + m.id + '"> I have watched the video and read the material above.</label>' +
+        '<button class="btn" data-startquiz="' + m.id + '" disabled>Step 3 &mdash; Start the quiz</button>' +
+        '</div>';
+    }
+
+    function buildQuiz(m) {
+      var h = '<div class="quiz" id="quiz_' + m.id + '" style="display:none"><h3>Quiz &mdash; ' + m.quiz.length + ' questions</h3>';
+      m.quiz.forEach(function (item, qi) {
+        h += '<div class="q" data-q="' + qi + '"><div class="qtext">' + (qi + 1) + '. ' + item.q + '</div>';
+        item.o.forEach(function (opt, oi) {
+          h += '<label class="opt"><input type="radio" name="' + m.id + '_' + qi + '" value="' + oi + '">' + opt + '</label>';
+        });
+        h += '</div>';
+      });
+      h += '<button class="btn" data-submit="' + m.id + '">Submit quiz</button>';
+      h += '<div class="result" id="result_' + m.id + '"></div></div>';
+      return h;
+    }
+
+    function buildModuleBody(m) { return buildLesson(m) + buildQuiz(m); }
+
+    function lockedBody(prevTitle) {
+      return '<div class="lesson"><p class="locked-note">&#128274; Finish and pass the <b>' + prevTitle +
+        '</b> module first. This one unlocks automatically once you do.</p></div>';
+    }
+
+    function wireModule(el, m) {
+      var ack = el.querySelector('[data-ack]');
+      var startBtn = el.querySelector('[data-startquiz]');
+      if (ack && startBtn) {
+        ack.addEventListener('change', function () { startBtn.disabled = !ack.checked; });
+        startBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var quiz = el.querySelector('.quiz');
+          quiz.style.display = 'block';
+          startBtn.style.display = 'none';
+          quiz.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
+      var submit = el.querySelector('[data-submit]');
+      if (submit) submit.addEventListener('click', function (e) { e.stopPropagation(); gradeQuiz(m); });
+    }
+
+    function renderModules() {
+      var wrap = document.getElementById('modules');
+      wrap.innerHTML = '';
+      MODULES.forEach(function (m, mi) {
+        var unlocked = isUnlocked(mi);
+        var el = document.createElement('div');
+        el.className = 'module' + (mi === 0 ? ' open' : '') + (unlocked ? '' : ' locked');
+        el.setAttribute('data-mod', m.id);
+        var done = !!passedModules[m.id];
+        var pillCls = done ? 'status-pill done' : (unlocked ? 'status-pill todo' : 'status-pill locked');
+        var pillTxt = done ? 'Passed' : (unlocked ? 'Not done' : 'Locked');
+        el.innerHTML =
+          '<div class="module-head"><div><h2>' + m.title + '</h2><div class="meta">' + m.summary + ' &middot; ' + m.quiz.length + ' questions</div></div>' +
+          '<div style="display:flex;align-items:center;gap:12px"><span class="' + pillCls + '" id="pill_' + m.id + '">' + pillTxt + '</span><span class="chevron">&#9656;</span></div></div>' +
+          '<div class="module-body">' + (unlocked ? buildModuleBody(m) : lockedBody(mi > 0 ? MODULES[mi - 1].title : '')) + '</div>';
+        wrap.appendChild(el);
+        el.querySelector('.module-head').addEventListener('click', function () { el.classList.toggle('open'); });
+        if (unlocked) wireModule(el, m);
+      });
+    }
+
+    // Unlock any module whose previous module is now passed, without disturbing the rest.
+    function reconcileLocks() {
+      MODULES.forEach(function (m, mi) {
+        var el = document.querySelector('[data-mod="' + m.id + '"]');
+        if (!el) return;
+        var pill = document.getElementById('pill_' + m.id);
+        if (passedModules[m.id] && pill) { pill.className = 'status-pill done'; pill.textContent = 'Passed'; }
+        if (isUnlocked(mi) && el.classList.contains('locked')) {
+          el.classList.remove('locked');
+          el.querySelector('.module-body').innerHTML = buildModuleBody(m);
+          wireModule(el, m);
+          el.classList.add('open');
+          if (pill && !passedModules[m.id]) { pill.className = 'status-pill todo'; pill.textContent = 'Not done'; }
+        }
+      });
+    }
+
+    // Paint the training immediately, before we wait on login or the database.
+    renderModules();
+  </script>
+
+  <!-- 2) Supabase handles login and saving results, loaded after the content is on screen. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js"></script>
+  <script>
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    document.getElementById('passLabel').textContent = PASS_PERCENT + '%';
+
+    // ---------- No sign-in: the learner just types their name ----------
+    // Results save under the name they enter. Reading all results stays
+    // admin-only (see admin.html), so the records are not public.
+    var nameInput = document.getElementById('learnerName');
+    var locationInput = document.getElementById('learnerLocation');
+    var who = document.getElementById('whoami');
+    nameInput.addEventListener('input', function () { who.textContent = nameInput.value.trim(); });
+
+    function learnerName() {
+      var n = nameInput.value.trim();
+      var loc = locationInput.value;
+      if (!n) return null;
+      return loc ? (n + ' (' + loc + ')') : n;
+    }
+
+    // A record of what was completed on this device during this visit.
+    var sessionLog = [];
+    function renderSessionLog() {
+      var body = document.getElementById('historyBody');
+      if (!sessionLog.length) { body.innerHTML = '<p class="empty">Nothing completed yet on this visit. Take a quiz above to get started.</p>'; return; }
+      var html = '<table><thead><tr><th>Module</th><th>Score</th><th>Result</th><th>Time</th></tr></thead><tbody>';
+      sessionLog.forEach(function (r) {
+        var pct = Math.round((r.score / r.total) * 100);
+        html += '<tr><td>' + r.module + '</td><td>' + pct + '% (' + r.score + '/' + r.total + ')</td><td>' +
+          (r.passed ? '<span class="status-pill done">Passed</span>' : '<span class="status-pill todo">Not passed</span>') +
+          '</td><td>' + r.when.toLocaleTimeString() + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    }
+    renderSessionLog();
+
+    function gradeQuiz(m) {
+      if (!learnerName()) { alert('Please enter your name at the top of the page before taking the quiz.'); nameInput.focus(); nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      let correct = 0;
+      let answeredAll = true;
+      const scope = document.getElementById('result_' + m.id).closest('.module');
+      m.quiz.forEach(function (item, qi) {
+        const chosen = document.querySelector('input[name="' + m.id + '_' + qi + '"]:checked');
+        const qNode = scope.querySelectorAll('.q')[qi];
+        qNode.querySelectorAll('.opt').forEach(function (o) { o.classList.remove('correct', 'wrong'); });
+        if (!chosen) { answeredAll = false; return; }
+        const val = parseInt(chosen.value, 10);
+        const opts = qNode.querySelectorAll('.opt');
+        if (val === item.a) { correct++; opts[val].classList.add('correct'); }
+        else { opts[val].classList.add('wrong'); opts[item.a].classList.add('correct'); }
+      });
+
+      const box = document.getElementById('result_' + m.id);
+      if (!answeredAll) {
+        box.className = 'result show fail';
+        box.innerHTML = 'Please answer every question before submitting.';
+        return;
+      }
+      const total = m.quiz.length;
+      const pct = Math.round((correct / total) * 100);
+      const passed = pct >= PASS_PERCENT;
+      box.className = 'result show ' + (passed ? 'pass' : 'fail');
+      box.innerHTML = '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total +
+        (passed ? ' correct. You passed this module. &#10003;' : ' correct. You need ' + PASS_PERCENT + '% to pass, please review and try again.');
+      if (passed) { passedModules[m.id] = true; reconcileLocks(); }
+      saveResult(m, correct, total, passed);
+    }
+
+    async function saveResult(m, score, total, passed) {
+      const row = {
+        user_email: learnerName(),
+        module: m.title,
+        score: score,
+        total: total,
+        passed: passed
+      };
+      const { error } = await sb.from('completions').insert(row);
+      if (error) { console.error(error); alert('Your score could not be saved. Please check your internet connection and submit again.'); return; }
+      if (passed) {
+        const pill = document.getElementById('pill_' + m.id);
+        pill.className = 'status-pill done';
+        pill.textContent = 'Passed';
+      }
+      sessionLog.unshift({ module: m.title, score: score, total: total, passed: passed, when: new Date() });
+      renderSessionLog();
+    }
+  </script>
+</body>
+</html>

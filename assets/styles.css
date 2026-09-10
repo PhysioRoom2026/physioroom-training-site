@@ -1,0 +1,122 @@
+/* Physio Room Training — shared styles (teal / navy brand) */
+:root {
+  --navy: #16324f;
+  --navy-deep: #0f2438;
+  --teal: #2a9d8f;
+  --teal-bright: #34b3a3;
+  --ground: #f4f6f7;
+  --surface: #ffffff;
+  --surface-2: #eef2f2;
+  --ink: #14232e;
+  --ink-soft: #4d6270;
+  --hairline: #dbe3e4;
+  --good: #2f9e63;
+  --good-bg: #e4f3ea;
+  --warn: #c98a1a;
+  --warn-bg: #f8efdc;
+  --bad: #cf4b4b;
+  --bad-bg: #f8e3e3;
+  --shadow: 0 1px 3px rgba(20,45,62,.08), 0 8px 24px rgba(20,45,62,.07);
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--ground);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--teal); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--teal); color: #fff; border: none; cursor: pointer;
+  padding: 12px 20px; border-radius: 10px; font-size: 15px; font-weight: 650;
+  transition: background .15s, transform .05s;
+}
+.btn:hover { background: var(--teal-bright); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--hairline); }
+.btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+
+/* ---- Login page ---- */
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 100%); }
+.login-card { background: var(--surface); width: 100%; max-width: 400px; border-radius: 18px;
+  padding: 34px 30px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.brand-row { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+.brand-mark { width: 40px; height: 40px; border-radius: 10px; flex: none;
+  background: linear-gradient(135deg, var(--teal-bright), var(--teal));
+  display: grid; place-items: center; color: #062b27; font-weight: 800; }
+.brand-name { font-weight: 750; font-size: 17px; line-height: 1.1; }
+.brand-sub { font-size: 12px; color: var(--ink-soft); }
+.login-card h1 { font-size: 20px; margin: 0 0 4px; }
+.login-card p.sub { margin: 0 0 22px; color: var(--ink-soft); font-size: 14px; }
+label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+input[type=email], input[type=password] {
+  width: 100%; padding: 11px 13px; border: 1px solid var(--hairline);
+  border-radius: 10px; font-size: 15px; background: var(--surface); color: var(--ink); }
+input:focus { outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal); }
+.msg { margin-top: 14px; padding: 10px 13px; border-radius: 9px; font-size: 13.5px; display: none; }
+.msg.show { display: block; }
+.msg.err { background: var(--bad-bg); color: var(--bad); }
+.msg.ok { background: var(--good-bg); color: var(--good); }
+.login-foot { margin-top: 18px; font-size: 12px; color: var(--ink-soft); text-align: center; }
+
+/* ---- App shell ---- */
+.appbar { background: var(--surface); border-bottom: 1px solid var(--hairline);
+  padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: sticky; top: 0; z-index: 10; }
+.appbar .who { font-size: 13px; color: var(--ink-soft); }
+.container { max-width: 860px; margin: 0 auto; padding: 26px 22px 70px; }
+.page-title { font-size: 24px; margin: 6px 0 4px; }
+.page-sub { color: var(--ink-soft); margin: 0 0 24px; }
+
+.module { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+.module-head { padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; cursor: pointer; }
+.module-head h2 { font-size: 17px; margin: 0; }
+.module-head .meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+.module-body { padding: 0 22px 22px; display: none; }
+.module.open .module-body { display: block; }
+.module-body h3 { font-size: 15px; margin: 20px 0 8px; }
+.module-body p, .module-body li { font-size: 14.5px; }
+.module-body ul { padding-left: 20px; }
+.chevron { transition: transform .2s; color: var(--ink-soft); }
+.module.open .chevron { transform: rotate(90deg); }
+
+.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; white-space: nowrap; }
+.status-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.status-pill.done { background: var(--good-bg); color: var(--good); }
+.status-pill.todo { background: var(--warn-bg); color: var(--warn); }
+
+/* ---- Quiz ---- */
+.quiz { border-top: 1px solid var(--hairline); margin-top: 20px; padding-top: 8px; }
+.q { margin: 18px 0; }
+.q .qtext { font-weight: 650; margin-bottom: 10px; }
+.opt { display: block; padding: 10px 13px; border: 1px solid var(--hairline); border-radius: 10px;
+  margin: 7px 0; cursor: pointer; font-size: 14.5px; transition: border-color .12s, background .12s; }
+.opt:hover { border-color: var(--teal); }
+.opt input { margin-right: 9px; }
+.opt.correct { border-color: var(--good); background: var(--good-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.result { margin-top: 18px; padding: 16px 18px; border-radius: 12px; font-size: 15px; display: none; }
+.result.show { display: block; }
+.result.pass { background: var(--good-bg); color: var(--good); }
+.result.fail { background: var(--warn-bg); color: var(--warn); }
+.result strong { font-size: 20px; }
+
+.history { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 20px 22px; }
+.history h2 { font-size: 16px; margin: 0 0 12px; }
+.history table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.history th { text-align: left; color: var(--ink-soft); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .6px; padding: 8px 10px; border-bottom: 1px solid var(--hairline); }
+.history td { padding: 9px 10px; border-bottom: 1px solid var(--hairline); }
+.history tr:last-child td { border-bottom: none; }
+.empty { color: var(--ink-soft); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
