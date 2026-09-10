@@ -64,7 +64,7 @@
         id: 'hipaa',
         title: 'HIPAA: Patient Privacy',
         summary: 'Protecting patient health information (PHI)',
-        video: 'CdUUfVOP4bE',
+        video: 'LMPX5C5eDR4',
         keypoints: `
           <ul>
             <li>Everyone protects privacy. PHI includes demographics too: name, address, age, Social Security number, phone.</li>
@@ -143,7 +143,7 @@
         id: 'osha_bbp',
         title: 'OSHA: Bloodborne Pathogens & Standard Precautions',
         summary: 'Preventing exposure to infectious material',
-        video: '3WeFZFb2nZo',
+        video: 'erTVjo6YYCI',
         keypoints: `
           <ul>
             <li>Hepatitis inflames the liver. Hepatitis C is the leading indicator for liver transplants in the U.S.</li>
@@ -202,7 +202,8 @@
     function buildLesson(m) {
       var vid = m.video
         ? '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/' + m.video +
-          '" title="' + m.title + ' training video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'
+          '" title="' + m.title + ' training video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>' +
+          '<p style="font-size:13px;margin:4px 0 0"><a href="https://www.youtube.com/watch?v=' + m.video + '" target="_blank" rel="noopener">Trouble seeing the video? Open it on YouTube</a></p>'
         : '';
       return '<div class="lesson">' +
         '<h3 style="margin-top:0">Step 1 &mdash; Watch the training video</h3>' + vid +
