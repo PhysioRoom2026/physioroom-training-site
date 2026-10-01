@@ -405,6 +405,7 @@
       m.quiz.forEach(function (item, qi) {
         const chosen = document.querySelector('input[name="' + m.id + '_' + qi + '"]:checked');
         const qNode = scope.querySelectorAll('.q')[qi];
+        qNode.classList.remove('q-right', 'q-wrong');
         qNode.querySelectorAll('.opt').forEach(function (o) { o.classList.remove('correct', 'wrong'); });
         if (!chosen) { answeredAll = false; picks.push(null); return; }
         const val = parseInt(chosen.value, 10);
@@ -430,15 +431,17 @@
       // compliance record, so a pass has to mean they actually knew the material.
       if (passed) {
         m.quiz.forEach(function (item, qi) {
-          const opts = scope.querySelectorAll('.q')[qi].querySelectorAll('.opt');
-          if (picks[qi] === item.a) { opts[picks[qi]].classList.add('correct'); }
-          else { opts[picks[qi]].classList.add('wrong'); opts[item.a].classList.add('correct'); }
+          const qNode = scope.querySelectorAll('.q')[qi];
+          const opts = qNode.querySelectorAll('.opt');
+          if (picks[qi] === item.a) { opts[picks[qi]].classList.add('correct'); qNode.classList.add('q-right'); }
+          else { opts[picks[qi]].classList.add('wrong'); qNode.classList.add('q-wrong'); }
         });
       }
 
       box.className = 'result show ' + (passed ? 'pass' : 'fail');
       box.innerHTML = passed
-        ? '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total + ' correct. You passed this module. &#10003;'
+        ? '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total + ' correct. You passed this module. &#10003;' +
+          (correct < total ? ' The ' + (total - correct) + ' you missed are marked in red below.' : '')
         : '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total + ' correct. You need ' +
           PASS_PERCENT + '% to pass.' + missedTopicsHtml(m, picks) +
           '<p style="margin:8px 0 0">Individual answers are not shown, so re-read those sections ' +

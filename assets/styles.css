@@ -102,8 +102,17 @@ input:focus { outline: 2px solid var(--teal); outline-offset: 1px; border-color:
   margin: 7px 0; cursor: pointer; font-size: 14.5px; transition: border-color .12s, background .12s; }
 .opt:hover { border-color: var(--teal); }
 .opt input { margin-right: 9px; }
-.opt.correct { border-color: var(--good); background: var(--good-bg); }
-.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt.correct { border: 2px solid var(--good); background: var(--good-bg); color: #1d6b41; font-weight: 600; }
+.opt.wrong { border: 2px solid var(--bad); background: var(--bad-bg); color: #9b2f2f; font-weight: 600; }
+.opt.correct::after, .opt.wrong::after { float: right; font-size: 12.5px; font-weight: 700; padding: 1px 9px; border-radius: 999px; color: #fff; }
+.opt.correct::after { content: "\2713  Your answer"; background: var(--good); }
+.opt.wrong::after { content: "\2717  Your answer"; background: var(--bad); }
+/* Question-level marker, only ever applied after a PASSING attempt. */
+.q.q-right, .q.q-wrong { padding-left: 12px; border-left: 4px solid var(--good); }
+.q.q-wrong { border-left-color: var(--bad); }
+.q.q-right .qtext::after, .q.q-wrong .qtext::after { margin-left: 8px; font-size: 12.5px; font-weight: 700; padding: 1px 9px; border-radius: 999px; }
+.q.q-right .qtext::after { content: "\2713  Correct"; background: var(--good-bg); color: var(--good); }
+.q.q-wrong .qtext::after { content: "\2717  Missed"; background: var(--bad-bg); color: var(--bad); }
 .result { margin-top: 18px; padding: 16px 18px; border-radius: 12px; font-size: 15px; display: none; }
 .result.show { display: block; }
 .result.pass { background: var(--good-bg); color: var(--good); }
