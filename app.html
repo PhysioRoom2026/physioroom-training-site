@@ -20,6 +20,11 @@
     .learner-fields { display: flex; gap: 16px; flex-wrap: wrap; }
     .learner-fields label { font-size: 13px; font-weight: 600; }
     .learner-fields input, .learner-fields select { font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--hairline, #d9e0e5); border-radius: 8px; margin-top: 5px; min-width: 220px; }
+    .learner-box.needs { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+    .learner-box.needs .learner-fields input, .learner-box.needs .learner-fields select { border-color: #c0392b; }
+    .learner-msg { display: none; margin: 10px 0 0; font-size: 13px; font-weight: 600; color: #c0392b; }
+    .learner-box.needs .learner-msg { display: block; }
+    .req { color: #c0392b; }
   </style>
 </head>
 <body>
@@ -39,11 +44,12 @@
 
     <div class="learner-box" id="learnerBox">
       <h2 style="margin:0 0 4px;font-size:16px">Before you start</h2>
-      <p style="margin:0 0 12px;font-size:13px;color:var(--muted,#5a6b78)">Enter your name so your training is recorded. Please use your real first and last name.</p>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted,#5a6b78)">Enter your name and location so your training is recorded. Please use your real first and last name. Both are required before you can start.</p>
       <div class="learner-fields">
-        <label>Your name<br><input type="text" id="learnerName" placeholder="First and last name" autocomplete="name"></label>
-        <label>Location<br><select id="learnerLocation"><option value="">Select...</option><option>Highlands Ranch</option><option>Colorado Springs</option></select></label>
+        <label>Your name <span class="req">*</span><br><input type="text" id="learnerName" placeholder="First and last name" autocomplete="name" required></label>
+        <label>Location <span class="req">*</span><br><select id="learnerLocation" required><option value="">Select...</option><option value="HR">Highlands Ranch</option><option value="CoS">Colorado Springs</option></select></label>
       </div>
+      <p class="learner-msg" id="learnerMsg">Please enter your name and choose your location before starting a module.</p>
     </div>
 
     <div id="modules"></div>
@@ -254,13 +260,32 @@
       if (submit) submit.addEventListener('click', function (e) { e.stopPropagation(); gradeQuiz(m); });
     }
 
+    // A module will not open until we know who is taking it. This is checked when a
+    // module is OPENED rather than when the quiz is submitted, so nobody can answer
+    // every question and only then be told we needed their name.
+    function learnerReady() {
+      var n = document.getElementById('learnerName');
+      var l = document.getElementById('learnerLocation');
+      return !!(n && n.value.trim() && l && l.value);
+    }
+
+    function promptForDetails() {
+      var box = document.getElementById('learnerBox');
+      if (!box) return;
+      box.classList.add('needs');
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var n = document.getElementById('learnerName');
+      if (n && !n.value.trim()) { n.focus(); }
+      else { var l = document.getElementById('learnerLocation'); if (l) l.focus(); }
+    }
+
     function renderModules() {
       var wrap = document.getElementById('modules');
       wrap.innerHTML = '';
       MODULES.forEach(function (m, mi) {
         var unlocked = isUnlocked(mi);
         var el = document.createElement('div');
-        el.className = 'module' + (mi === 0 ? ' open' : '') + (unlocked ? '' : ' locked');
+        el.className = 'module' + (mi === 0 && learnerReady() ? ' open' : '') + (unlocked ? '' : ' locked');
         el.setAttribute('data-mod', m.id);
         var done = !!passedModules[m.id];
         var pillCls = done ? 'status-pill done' : (unlocked ? 'status-pill todo' : 'status-pill locked');
@@ -270,7 +295,11 @@
           '<div style="display:flex;align-items:center;gap:12px"><span class="' + pillCls + '" id="pill_' + m.id + '">' + pillTxt + '</span><span class="chevron">&#9656;</span></div></div>' +
           '<div class="module-body">' + (unlocked ? buildModuleBody(m) : lockedBody(mi > 0 ? MODULES[mi - 1].title : '')) + '</div>';
         wrap.appendChild(el);
-        el.querySelector('.module-head').addEventListener('click', function () { el.classList.toggle('open'); });
+        el.querySelector('.module-head').addEventListener('click', function () {
+          var opening = !el.classList.contains('open');
+          if (opening && !learnerReady()) { promptForDetails(); return; }
+          el.classList.toggle('open');
+        });
         if (unlocked) wireModule(el, m);
       });
     }
@@ -309,13 +338,28 @@
     var nameInput = document.getElementById('learnerName');
     var locationInput = document.getElementById('learnerLocation');
     var who = document.getElementById('whoami');
-    nameInput.addEventListener('input', function () { who.textContent = nameInput.value.trim(); });
 
+    // As soon as we have both details, drop the warning and open the first module
+    // so they can get straight on with it.
+    function learnerDetailsChanged() {
+      who.textContent = nameInput.value.trim();
+      if (!learnerReady()) return;
+      var box = document.getElementById('learnerBox');
+      if (box) box.classList.remove('needs');
+      var first = document.querySelector('.module:not(.locked)');
+      if (first && !first.classList.contains('open')) first.classList.add('open');
+    }
+    nameInput.addEventListener('input', learnerDetailsChanged);
+    locationInput.addEventListener('change', learnerDetailsChanged);
+
+    // BOTH name and location are required. Without a location the completion log
+    // cannot say which clinic the person belongs to, which makes it useless for
+    // tracking compliance by site.
     function learnerName() {
       var n = nameInput.value.trim();
       var loc = locationInput.value;
-      if (!n) return null;
-      return loc ? (n + ' (' + loc + ')') : n;
+      if (!n || !loc) return null;
+      return n + ' (' + loc + ')';
     }
 
     // A record of what was completed on this device during this visit.
@@ -336,7 +380,7 @@
     renderSessionLog();
 
     function gradeQuiz(m) {
-      if (!learnerName()) { alert('Please enter your name at the top of the page before taking the quiz.'); nameInput.focus(); nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (!learnerName()) { promptForDetails(); return; }
       let correct = 0;
       let answeredAll = true;
       const scope = document.getElementById('result_' + m.id).closest('.module');
