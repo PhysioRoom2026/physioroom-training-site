@@ -107,7 +107,7 @@ input:focus { outline: 2px solid var(--teal); outline-offset: 1px; border-color:
 .opt.correct::after, .opt.wrong::after { float: right; font-size: 12.5px; font-weight: 700; padding: 1px 9px; border-radius: 999px; color: #fff; }
 .opt.correct::after { content: "\2713  Your answer"; background: var(--good); }
 .opt.wrong::after { content: "\2717  Your answer"; background: var(--bad); }
-/* Question-level marker, only ever applied after a PASSING attempt. */
+/* Question-level marker, applied after every attempt. */
 .q.q-right, .q.q-wrong { padding-left: 12px; border-left: 4px solid var(--good); }
 .q.q-wrong { border-left-color: var(--bad); }
 .q.q-right .qtext::after, .q.q-wrong .qtext::after { margin-left: 8px; font-size: 12.5px; font-weight: 700; padding: 1px 9px; border-radius: 999px; }

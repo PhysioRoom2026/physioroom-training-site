@@ -380,9 +380,7 @@
     renderSessionLog();
 
     // On a FAILED attempt, list the training sections the learner missed questions from,
-    // in the same order they appear in the material. We deliberately do NOT say which
-    // questions were right or wrong, or how many were missed per section: with 19
-    // true/false questions, any per-question marking would give away the answer key.
+    // in the same order they appear in the material, so they know what to re-read.
     function missedTopicsHtml(m, picks) {
       const missed = {};
       m.quiz.forEach(function (item, qi) { if (picks[qi] !== item.a && item.t) missed[item.t] = true; });
@@ -423,29 +421,26 @@
       const pct = Math.round((correct / total) * 100);
       const passed = pct >= PASS_PERCENT;
 
-      // ANSWERS ARE ONLY REVEALED ONCE THEY HAVE PASSED.
-      // On a failed attempt we show the score and the SECTIONS to review, never
-      // which individual questions were right or wrong. 19 of these 48
-      // questions are true/false, so marking the wrong ones would hand over the
-      // answer key and let someone resubmit for 100% seconds later. This is a
-      // compliance record, so a pass has to mean they actually knew the material.
-      if (passed) {
-        m.quiz.forEach(function (item, qi) {
-          const qNode = scope.querySelectorAll('.q')[qi];
-          const opts = qNode.querySelectorAll('.opt');
-          if (picks[qi] === item.a) { opts[picks[qi]].classList.add('correct'); qNode.classList.add('q-right'); }
-          else { opts[picks[qi]].classList.add('wrong'); qNode.classList.add('q-wrong'); }
-        });
-      }
+      // Mark every question on EVERY attempt (pass or fail): the learner's own pick goes
+      // green if right, red if wrong. The correct option is never highlighted on a missed
+      // question. Alex's decision (2026-10-01), made knowing the trade-off: on the 19
+      // true/false questions a red pick still implies the answer, so a failed attempt can
+      // be turned into a pass by flipping the red answers on the next try.
+      m.quiz.forEach(function (item, qi) {
+        const qNode = scope.querySelectorAll('.q')[qi];
+        const opts = qNode.querySelectorAll('.opt');
+        if (picks[qi] === item.a) { opts[picks[qi]].classList.add('correct'); qNode.classList.add('q-right'); }
+        else { opts[picks[qi]].classList.add('wrong'); qNode.classList.add('q-wrong'); }
+      });
 
       box.className = 'result show ' + (passed ? 'pass' : 'fail');
       box.innerHTML = passed
         ? '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total + ' correct. You passed this module. &#10003;' +
           (correct < total ? ' The ' + (total - correct) + ' you missed are marked in red below.' : '')
         : '<strong>' + pct + '%</strong> &mdash; ' + correct + ' of ' + total + ' correct. You need ' +
-          PASS_PERCENT + '% to pass.' + missedTopicsHtml(m, picks) +
-          '<p style="margin:8px 0 0">Individual answers are not shown, so re-read those sections ' +
-          '(and rewatch the video if it helps) before you try again.</p>';
+          PASS_PERCENT + '% to pass. The ' + (total - correct) + ' you missed are marked in red below.' +
+          missedTopicsHtml(m, picks) +
+          '<p style="margin:8px 0 0">Re-read those sections (and rewatch the video if it helps) before you try again.</p>';
       if (passed) { passedModules[m.id] = true; reconcileLocks(); }
       saveResult(m, correct, total, passed);
     }
