@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Physio Room Training</title>
-  <link rel="stylesheet" href="assets/styles.css?v=20261001212646">
+  <link rel="stylesheet" href="assets/styles.css?v=20261001220740">
   <style>
     .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; margin: 10px 0 6px; border-radius: 10px; overflow: hidden; background: #000; }
     .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
@@ -40,7 +40,8 @@
 
   <div class="container">
     <h1 class="page-title">Your required training</h1>
-    <p class="page-sub">For each module: watch the video, read the material, then take the quiz (you need <strong id="passLabel">80%</strong> to pass). Complete <strong>HIPAA first</strong>, then OSHA unlocks once you pass it.</p>
+    <p class="page-sub">For each module: watch the video, read the material, then take the quiz (you need <strong id="passLabel">80%</strong> to pass). HIPAA and OSHA are separate modules and can be done in either order. Your manager may have you do OSHA together at a team meeting, with our trainer there to answer questions.</p>
+    <p class="page-sub" id="onlyNote" style="display:none"></p>
 
     <div class="learner-box" id="learnerBox">
       <h2 style="margin:0 0 4px;font-size:16px">Before you start</h2>
@@ -235,7 +236,23 @@
 
     // Which modules the current user has already passed (drives the HIPAA-then-OSHA order).
     var passedModules = {};
-    function isUnlocked(mi) { return mi === 0 || !!passedModules[MODULES[mi - 1].id]; }
+    // Modules are independent (no HIPAA-before-OSHA lock), so OSHA can be done as a group
+    // at a team meeting with the trainer present for live Q&A (OSHA 1910.1030(g)(2)(vii)(N)).
+    function isUnlocked(mi) { return true; }
+
+    // A link ending in ?module=osha or ?module=hipaa shows just that module.
+    var ONLY_MODULE = (function () {
+      var v = (new URLSearchParams(window.location.search).get('module') || '').toLowerCase();
+      var hit = MODULES.filter(function (m) { return v && m.id.indexOf(v) === 0; })[0];
+      return hit ? hit.id : null;
+    })();
+    function isShown(m) { return !ONLY_MODULE || m.id === ONLY_MODULE; }
+    if (ONLY_MODULE) {
+      var note = document.getElementById('onlyNote');
+      var only = MODULES.filter(function (m) { return m.id === ONLY_MODULE; })[0];
+      note.innerHTML = 'This link shows <strong>' + only.title + '</strong> only. <a href="app.html">See all training</a>.';
+      note.style.display = 'block';
+    }
 
     function buildLesson(m) {
       var vid = m.video
@@ -318,10 +335,13 @@
     function renderModules() {
       var wrap = document.getElementById('modules');
       wrap.innerHTML = '';
+      var firstShown = true;
       MODULES.forEach(function (m, mi) {
+        if (!isShown(m)) return;
         var unlocked = isUnlocked(mi);
         var el = document.createElement('div');
-        el.className = 'module' + (mi === 0 && learnerReady() ? ' open' : '') + (unlocked ? '' : ' locked');
+        el.className = 'module' + (firstShown && learnerReady() ? ' open' : '') + (unlocked ? '' : ' locked');
+        firstShown = false;
         el.setAttribute('data-mod', m.id);
         var done = !!passedModules[m.id];
         var pillCls = done ? 'status-pill done' : (unlocked ? 'status-pill todo' : 'status-pill locked');
@@ -363,7 +383,7 @@
 
   <!-- 2) Supabase handles login and saving results, loaded after the content is on screen. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/config.js?v=20261001212646"></script>
+  <script src="assets/config.js?v=20261001220740"></script>
   <script>
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     document.getElementById('passLabel').textContent = PASS_PERCENT + '%';

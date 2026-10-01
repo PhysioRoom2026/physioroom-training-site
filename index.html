@@ -6,7 +6,7 @@
   <title>Physio Room Training</title>
   <link rel="stylesheet" href="assets/styles.css">
   <meta http-equiv="refresh" content="1; url=app.html">
-  <script>window.location.replace('app.html?t=' + Date.now());</script>
+  <script>window.location.replace('app.html' + (window.location.search ? window.location.search + '&' : '?') + 't=' + Date.now());</script>
 </head>
 <body>
   <div class="container" style="max-width:520px;margin:60px auto;text-align:center">
