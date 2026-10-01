@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Physio Room Training</title>
-  <link rel="stylesheet" href="assets/styles.css?v=20261001212013">
+  <link rel="stylesheet" href="assets/styles.css?v=20261001212646">
   <style>
     .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; margin: 10px 0 6px; border-radius: 10px; overflow: hidden; background: #000; }
     .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
@@ -44,12 +44,13 @@
 
     <div class="learner-box" id="learnerBox">
       <h2 style="margin:0 0 4px;font-size:16px">Before you start</h2>
-      <p style="margin:0 0 12px;font-size:13px;color:var(--muted,#5a6b78)">Enter your name and location so your training is recorded. Please use your real first and last name. Both are required before you can start.</p>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted,#5a6b78)">Enter your name, location, and job title so your training is recorded. Please use your real first and last name. All three are required before you can start.</p>
       <div class="learner-fields">
         <label>Your name <span class="req">*</span><br><input type="text" id="learnerName" placeholder="First and last name" autocomplete="name" required></label>
         <label>Location <span class="req">*</span><br><select id="learnerLocation" required><option value="">Select...</option><option value="HR">Highlands Ranch</option><option value="CoS">Colorado Springs</option></select></label>
+        <label>Job title <span class="req">*</span><br><input type="text" id="learnerJob" placeholder="e.g. Physical Therapist, Front Desk" autocomplete="organization-title" required></label>
       </div>
-      <p class="learner-msg" id="learnerMsg">Please enter your name and choose your location before starting a module.</p>
+      <p class="learner-msg" id="learnerMsg">Please enter your name, location, and job title before starting a module.</p>
     </div>
 
     <div id="modules"></div>
@@ -65,6 +66,10 @@
     // ---------- Training + quiz content (2026) ----------
     // Module titles are kept identical to the originals so the SQL reports and saved
     // history stay consistent. Add more questions any time; the app grades whatever is listed.
+    // Bump this whenever the training material or quiz changes, and add a matching
+    // summary to CONTENT_SUMMARIES in the sheet's Apps Script (sheet-sync.gs).
+    const CONTENT_VERSION = '2026-10-01';
+
     const MODULES = [
       {
         id: 'hipaa',
@@ -293,7 +298,8 @@
     function learnerReady() {
       var n = document.getElementById('learnerName');
       var l = document.getElementById('learnerLocation');
-      return !!(n && n.value.trim() && l && l.value);
+      var j = document.getElementById('learnerJob');
+      return !!(n && n.value.trim() && l && l.value && j && j.value.trim());
     }
 
     function promptForDetails() {
@@ -302,8 +308,11 @@
       box.classList.add('needs');
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
       var n = document.getElementById('learnerName');
+      var l = document.getElementById('learnerLocation');
+      var j = document.getElementById('learnerJob');
       if (n && !n.value.trim()) { n.focus(); }
-      else { var l = document.getElementById('learnerLocation'); if (l) l.focus(); }
+      else if (l && !l.value) { l.focus(); }
+      else if (j) { j.focus(); }
     }
 
     function renderModules() {
@@ -354,7 +363,7 @@
 
   <!-- 2) Supabase handles login and saving results, loaded after the content is on screen. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/config.js?v=20261001212013"></script>
+  <script src="assets/config.js?v=20261001212646"></script>
   <script>
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     document.getElementById('passLabel').textContent = PASS_PERCENT + '%';
@@ -364,6 +373,7 @@
     // admin-only (see admin.html), so the records are not public.
     var nameInput = document.getElementById('learnerName');
     var locationInput = document.getElementById('learnerLocation');
+    var jobInput = document.getElementById('learnerJob');
     var who = document.getElementById('whoami');
 
     // As soon as we have both details, drop the warning and open the first module
@@ -378,6 +388,7 @@
     }
     nameInput.addEventListener('input', learnerDetailsChanged);
     locationInput.addEventListener('change', learnerDetailsChanged);
+    jobInput.addEventListener('input', learnerDetailsChanged);
 
     // BOTH name and location are required. Without a location the completion log
     // cannot say which clinic the person belongs to, which makes it useless for
@@ -385,7 +396,7 @@
     function learnerName() {
       var n = nameInput.value.trim();
       var loc = locationInput.value;
-      if (!n || !loc) return null;
+      if (!n || !loc || !jobInput.value.trim()) return null;
       return n + ' (' + loc + ')';
     }
 
@@ -478,7 +489,12 @@
         module: m.title,
         score: score,
         total: total,
-        passed: passed
+        passed: passed,
+        // OSHA 1910.1030(h)(2) training records need the attendee's job title, and a
+        // summary of what was taught. content_version ties each record to the exact
+        // version of the material (summarised in the sheet's "Training Record Info" tab).
+        job_title: jobInput.value.trim(),
+        content_version: CONTENT_VERSION
       };
       const { error } = await sb.from('completions').insert(row);
       if (error) { console.error(error); alert('Your score could not be saved. Please check your internet connection and submit again.'); return; }
