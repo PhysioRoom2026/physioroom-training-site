@@ -28,6 +28,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js?v=20261001222824"></script>
   <script>
+    // Read this BEFORE creating the client: the client clears the link details from the address bar.
+    const cameFromResetEmail = /type=recovery/.test(window.location.hash + window.location.search);
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let rows = [];
 
@@ -35,9 +37,46 @@
     // it has its own sign-in here (only people in the admins table can read records).
     (async function init() {
       const { data } = await sb.auth.getSession();
+      if (cameFromResetEmail && data.session) { showSetPassword(); return; }
       if (!data.session) { showLogin(); return; }
       await afterLogin(data.session.user.email);
     })();
+
+    const inputStyle = 'display:block;width:100%;padding:10px;margin-bottom:8px;border:1px solid #d9e0e5;border-radius:8px';
+
+    async function sendReset() {
+      const email = document.getElementById('ademail').value.trim();
+      const msg = document.getElementById('admsg');
+      if (!email) { msg.textContent = 'Type your email above first, then click Forgot password.'; return; }
+      msg.textContent = 'Sending...';
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      msg.textContent = error ? (error.message || 'Could not send the email.')
+        : 'If that email has an admin account, a reset link is on its way. Check your inbox (and spam).';
+    }
+
+    function showSetPassword() {
+      document.getElementById('body').innerHTML = '';
+      document.getElementById('gate').innerHTML =
+        '<div style="max-width:360px"><h2 style="margin:0 0 6px;font-size:18px">Choose a new password</h2>' +
+        '<p class="empty" style="margin:0 0 12px">At least 8 characters.</p>' +
+        '<input id="newpass" type="password" placeholder="New password" autocomplete="new-password" style="' + inputStyle + '">' +
+        '<input id="newpass2" type="password" placeholder="Type it again" autocomplete="new-password" style="' + inputStyle + ';margin-bottom:12px">' +
+        '<button class="btn" id="savepass">Save new password</button>' +
+        '<p class="empty" id="admsg" style="margin-top:10px"></p></div>';
+      document.getElementById('savepass').addEventListener('click', async function () {
+        const p1 = document.getElementById('newpass').value;
+        const p2 = document.getElementById('newpass2').value;
+        const msg = document.getElementById('admsg');
+        if (p1.length < 8) { msg.textContent = 'Please use at least 8 characters.'; return; }
+        if (p1 !== p2) { msg.textContent = 'Those two do not match.'; return; }
+        msg.textContent = 'Saving...';
+        const { data, error } = await sb.auth.updateUser({ password: p1 });
+        if (error) { msg.textContent = error.message || 'Could not save the password.'; return; }
+        await afterLogin(data.user.email);
+      });
+    }
 
     function showLogin() {
       document.getElementById('whoami').textContent = '';
@@ -48,8 +87,10 @@
         '<input id="ademail" type="email" placeholder="you@physioroomco.com" autocomplete="email" style="display:block;width:100%;padding:10px;margin-bottom:8px;border:1px solid #d9e0e5;border-radius:8px">' +
         '<input id="adpass" type="password" placeholder="Password" autocomplete="current-password" style="display:block;width:100%;padding:10px;margin-bottom:12px;border:1px solid #d9e0e5;border-radius:8px">' +
         '<button class="btn" id="adlogin">Sign in</button>' +
+        ' <button class="btn ghost" id="adforgot" style="margin-left:6px">Forgot password?</button>' +
         '<p class="empty" id="admsg" style="margin-top:10px"></p></div>';
       document.getElementById('adlogin').addEventListener('click', doLogin);
+      document.getElementById('adforgot').addEventListener('click', sendReset);
       document.getElementById('adpass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
     }
 
